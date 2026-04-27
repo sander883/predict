@@ -1,0 +1,118 @@
+# BTC 5-Minute Signal Generator (Polymarket)
+
+Production-ready Python system that predicts the probability BTC/USDT moves up
+over the next 5 minutes, designed to feed Polymarket short-horizon markets.
+
+## Stack
+
+- **ccxt** — real-time BTC/USDT 1m OHLCV from Binance
+- **tradingview-ta** — RSI(14), EMA(9), EMA(21) from TradingView (with local fallback)
+- **mlmodelpoly** — optional ML wrapper (rule-based baseline ships by default)
+
+## Layout
+
+```
+predict/
+├── config.py             # parameters & toggles
+├── data_collector.py     # ccxt OHLCV
+├── tv_indicators.py      # TradingView + local fallback
+├── feature_engineering.py
+├── model.py              # RuleBasedModel + MLModel
+├── signal_generator.py
+├── logger.py             # CSV log + evaluator
+├── main.py               # loop / --once / --evaluate
+└── requirements.txt
+```
+
+## Setup
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Run
+
+```bash
+# Single iteration
+python main.py --once
+
+# Continuous loop (every 30s by default)
+python main.py
+
+# Evaluate accuracy / winrate / calibration on the log
+python main.py --evaluate
+```
+
+## Toggles (`config.py`)
+
+| Setting | Default | Notes |
+|---|---|---|
+| `use_tradingview` | `True` | When `False` (or on TV failure) indicators are computed locally |
+| `use_ml_model` | `False` | When `True` and `ml_model.pkl` exists, MLModel is used; falls back to rules |
+| `poll_interval_s` | `30` | Loop cadence |
+| `forecast_horizon_min` | `5` | Used by the evaluator |
+
+## Rule-based model
+
+```
+base = 0.5
+RSI < 30 -> +0.10
+RSI > 70 -> -0.10
+EMA9 > EMA21 -> +0.10 (else -0.10)
+ret_1m > 0 -> +0.05 (else -0.05)
+clamp to [0, 1]
+```
+
+## Plugging in an ML model (`mlmodelpoly`)
+
+`MLModel` in `model.py` loads any pickle/joblib estimator exposing
+`predict_proba(X)` with the positive class = "up". Feature order:
+
+```
+ret_1m, ret_3m, ret_5m, vol_std, volume_z, rsi, ema_spread
+```
+
+Train upstream (e.g. with mlmodelpoly), save as `ml_model.pkl`, set
+`use_ml_model = True` and run.
+
+## Example output
+
+```json
+{
+  "timestamp": "2026-04-27T12:34:56.789+00:00",
+  "price": 67421.45,
+  "prob_up": 0.55,
+  "rsi": 42.7,
+  "ema_spread": 0.00031,
+  "ret_1m": 0.00012
+}
+```
+
+`predictions.csv`:
+
+```
+timestamp,price,prob_up,rsi,ema_spread,ret_1m
+2026-04-27T12:34:56.789+00:00,67421.45,0.55,42.7,0.00031,0.00012
+```
+
+`python main.py --evaluate`:
+
+```json
+{
+  "n_samples": 240,
+  "accuracy": 0.54,
+  "winrate": 0.56,
+  "calibration": {
+    "[0.4,0.5)": {"avg_actual_up": 0.47, "n": 60},
+    "[0.5,0.6)": {"avg_actual_up": 0.55, "n": 92},
+    "[0.6,0.7)": {"avg_actual_up": 0.61, "n": 38}
+  }
+}
+```
+
+## References
+
+- ccxt — https://github.com/ccxt/ccxt
+- TradingView API — https://github.com/Mathieu2301/TradingView-API
+- mlmodelpoly — https://github.com/txbabaxyz/mlmodelpoly
