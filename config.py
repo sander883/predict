@@ -40,6 +40,9 @@ class Config:
     # --- Polymarket ---
     poly_market_slug: str = ""          # e.g. "bitcoin-up-or-down-april-27-12pm-et"
     poly_token_id: str = ""             # YES outcome CLOB token_id (overrides slug)
+    poly_auto_discover: bool = True     # auto-find active "BTC Up or Down 5m" market
+    poly_search_query: str = "BTC Up or Down 5m"
+    poly_discovery_ttl_s: int = 60      # re-discover every minute (5m markets roll fast)
     poly_timeout_s: float = 5.0
     edge_threshold: float = 0.03        # min edge to take a side
     kelly_fraction: float = 0.25        # fractional Kelly multiplier

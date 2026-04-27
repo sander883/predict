@@ -12,7 +12,7 @@ from data_collector import DataCollector
 from edge import generate_action
 from logger import evaluate, log_signal
 from model import get_model
-from polymarket_client import fetch_yes_price
+from polymarket_client import PolymarketClient, fetch_yes_price
 from signal_generator import SignalGenerator
 from tv_indicators import get_indicators
 
@@ -82,7 +82,23 @@ def main():
     parser = argparse.ArgumentParser(description="BTC 5-min direction signal generator")
     parser.add_argument("--once", action="store_true", help="Run a single iteration and exit")
     parser.add_argument("--evaluate", action="store_true", help="Evaluate predictions log and exit")
+    parser.add_argument("--find-market", action="store_true",
+                        help="List active markets matching CONFIG.poly_search_query and exit")
     args = parser.parse_args()
+
+    if args.find_market:
+        client = PolymarketClient(timeout=CONFIG.poly_timeout_s)
+        markets = client.list_btc_5m_markets(query=CONFIG.poly_search_query)
+        out = []
+        for m in markets[:20]:
+            out.append({
+                "slug": m.get("slug"),
+                "question": m.get("question") or m.get("title"),
+                "endDate": m.get("endDate") or m.get("end_date_iso"),
+                "yes_token_id": PolymarketClient._yes_token_from_market(m),
+            })
+        print(json.dumps(out, indent=2, default=str))
+        return
 
     if args.evaluate:
         report = evaluate()

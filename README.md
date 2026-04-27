@@ -107,13 +107,29 @@ Action selection (whichever side wins, if its edge clears `edge_threshold`):
 
 Size = `kelly_fraction * fractional_Kelly(p, price)`, clamped to `[0, 1]`.
 
-Configure either by slug or directly by token_id:
+### Market selection (3 modes)
 
-```python
-# config.py
-poly_market_slug = "bitcoin-up-or-down-april-27-12pm-et"
-# or
-poly_token_id = "71321045679252212594626385532706912750332728571942165818289...."
+1. **Auto-discovery** (default) — finds the active "BTC Up or Down 5m" market
+   with the soonest end time, re-checked every `poly_discovery_ttl_s` (60s):
+
+   ```python
+   poly_auto_discover = True
+   poly_search_query = "BTC Up or Down 5m"
+   ```
+
+2. **Manual slug:**
+   ```python
+   poly_market_slug = "btc-up-or-down-5m-..."
+   ```
+
+3. **Manual token_id** (most exact, skips Gamma lookup):
+   ```python
+   poly_token_id = "713210456792...."
+   ```
+
+Inspect what auto-discovery finds:
+```bash
+python main.py --find-market
 ```
 
 ## Example output
