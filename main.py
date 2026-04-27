@@ -9,8 +9,10 @@ import time
 
 from config import CONFIG
 from data_collector import DataCollector
+from edge import generate_action
 from logger import evaluate, log_signal
 from model import get_model
+from polymarket_client import fetch_yes_price
 from signal_generator import SignalGenerator
 from tv_indicators import get_indicators
 
@@ -25,12 +27,37 @@ def run_once(collector: DataCollector, generator: SignalGenerator) -> dict:
     ohlcv = collector.fetch_ohlcv()
     indicators = get_indicators(ohlcv)
     signal = generator.generate(ohlcv, indicators)
+
+    if CONFIG.use_polymarket:
+        yes_book = fetch_yes_price()
+        report = generate_action(signal["prob_up"], yes_book)
+        if report is not None:
+            signal.update({
+                "yes_bid": report.yes_bid,
+                "yes_ask": report.yes_ask,
+                "yes_mid": report.yes_mid,
+                "edge_yes": report.edge_yes,
+                "edge_no": report.edge_no,
+                "action": report.action,
+                "size": report.size,
+            })
+            log.info(
+                "price=%.2f prob_up=%.3f yes_mid=%.3f edge_yes=%+.4f edge_no=%+.4f -> %s size=%.4f",
+                signal["price"], signal["prob_up"], report.yes_mid,
+                report.edge_yes, report.edge_no, report.action, report.size,
+            )
+        else:
+            signal["action"] = "NO_MARKET"
+            log.info("price=%.2f prob_up=%.3f (no Polymarket book)",
+                     signal["price"], signal["prob_up"])
+    else:
+        log.info(
+            "price=%.2f prob_up=%.3f rsi=%.1f ema_spread=%.5f ret_1m=%.5f",
+            signal["price"], signal["prob_up"], signal["rsi"],
+            signal["ema_spread"], signal["ret_1m"],
+        )
+
     log_signal(signal)
-    log.info(
-        "price=%.2f prob_up=%.3f rsi=%.1f ema_spread=%.5f ret_1m=%.5f",
-        signal["price"], signal["prob_up"], signal["rsi"],
-        signal["ema_spread"], signal["ret_1m"],
-    )
     return signal
 
 

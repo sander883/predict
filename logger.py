@@ -14,7 +14,11 @@ from config import CONFIG
 
 log = logging.getLogger(__name__)
 
-_FIELDS = ["timestamp", "price", "prob_up", "rsi", "ema_spread", "ret_1m"]
+_FIELDS = [
+    "timestamp", "price", "prob_up", "rsi", "ema_spread", "ret_1m",
+    "yes_bid", "yes_ask", "yes_mid", "edge_yes", "edge_no",
+    "action", "size",
+]
 
 
 def log_signal(signal: Dict, path: str = CONFIG.log_csv_path) -> None:

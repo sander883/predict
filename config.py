@@ -35,6 +35,14 @@ class Config:
     use_tradingview: bool = True       # if False, compute indicators locally
     use_ml_model: bool = False          # if False, use rule-based model
     ml_model_path: str = "ml_model.pkl"
+    use_polymarket: bool = True         # fetch YES price + compute edge/action
+
+    # --- Polymarket ---
+    poly_market_slug: str = ""          # e.g. "bitcoin-up-or-down-april-27-12pm-et"
+    poly_token_id: str = ""             # YES outcome CLOB token_id (overrides slug)
+    poly_timeout_s: float = 5.0
+    edge_threshold: float = 0.03        # min edge to take a side
+    kelly_fraction: float = 0.25        # fractional Kelly multiplier
 
     # --- Loop / Runtime ---
     poll_interval_s: int = 30
